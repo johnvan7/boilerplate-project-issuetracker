@@ -5,6 +5,7 @@ const bodyParser  = require('body-parser');
 const expect      = require('chai').expect;
 const cors        = require('cors');
 require('dotenv').config();
+const myDB = require('./connection');
 
 const apiRoutes         = require('./routes/api.js');
 const fccTestingRoutes  = require('./routes/fcctesting.js');
@@ -15,8 +16,6 @@ let app = express();
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only
-
-
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -34,18 +33,25 @@ app.route('/')
   });
 
 //For FCC testing purposes
-fccTestingRoutes(app);
+fccTestingRoutes(app); 
 
-//Routing for API 
-apiRoutes(app);  
+myDB(async (client) => {
+  const myDataBase = await client.db('issuestracker')
+     
+     //Routing for API 
+  apiRoutes(app, myDataBase);
+
+  //404 Not Found Middleware
+  app.use(function(req, res, next) {
+    res.status(404)
+     .type('text')
+      .send('Not Found');
+  });
+  
+})/*.catch((e) => {
+  console.log(e);
+});*/
     
-//404 Not Found Middleware
-app.use(function(req, res, next) {
-  res.status(404)
-    .type('text')
-    .send('Not Found');
-});
-
 //Start our server and tests!
 app.listen(process.env.PORT || 3000, function () {
   console.log("Listening on port " + process.env.PORT);
